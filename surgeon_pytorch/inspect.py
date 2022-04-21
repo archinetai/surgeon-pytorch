@@ -73,11 +73,11 @@ class Inspect(nn.Module):
             layer.hook.remove()
             layer.hook = None
 
-    def forward(self, **kwargs):
+    def forward(self, *args, **kwargs):
         # Forward to model and record layers
         try:
             self.register_hooks()
-            model_output = self.model(**kwargs)
+            model_output = self.model(*args, **kwargs)
         finally:
             self.clear_hooks()
 
