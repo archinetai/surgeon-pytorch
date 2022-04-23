@@ -1,6 +1,9 @@
 <img src="./LOGO.png"></img>
 
-A library to inspect itermediate layers of PyTorch models.
+A library to inspect itermediate layers of PyTorch models. 
+
+### Why?
+It's often the case that we want to inspect intermediate layers of a model without modifying the code e.g. visualize attention matrices of language models, get values from an intermediate layer to feed to another layer, or applying a loss function to intermediate layers. 
 
 ## Install
 
@@ -73,3 +76,7 @@ print(layers)
 }
 """
 ```
+
+
+## TODO
+- [ ] add extract function to get intermediate block 
