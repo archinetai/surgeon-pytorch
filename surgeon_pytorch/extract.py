@@ -14,8 +14,10 @@ def get_rename_tracer(base: Type[Tracer]):
     class RenameTracer(base_any):
         """Renames all nodes with module aliases as prefix"""
 
-        module_alias: str = ""
-        module_ops_count: Dict[str, int] = {}
+        def __init__(self):
+            super().__init__()
+            self.module_alias: str = ""
+            self.module_ops_count: Dict[str, int] = {}
 
         def call_module(self, m: nn.Module, forward, args, kwargs):
             # Save current module alias prefix before entering module
@@ -35,7 +37,10 @@ def get_rename_tracer(base: Type[Tracer]):
             node = proxy.node
             # Change node names for functions/methods/module with alias
             if node.op == "call_method" or node.op == "call_function":
-                node.alias = self.module_alias + "." + self.get_name(node)
+                if self.module_alias:
+                    node.alias = self.module_alias + "." + self.get_name(node)
+                else:
+                    node.alias = self.get_name(node)
             elif node.op == "call_module":
                 node.alias = self.module_alias
             elif node.op == "placeholder":
@@ -127,7 +132,7 @@ class Extract(GraphModule):
         graph = self.graph
         aliases = to_list(node_alias)
 
-        # Replace node with input node
+        # Replace nodes with input nodes
         for node in graph.nodes:
             for alias in aliases:
                 if getattr(node, "alias", None) == alias:
@@ -137,16 +142,22 @@ class Extract(GraphModule):
                             if isinstance(node_alias, dict)
                             else node.name
                         )
-                        new_node = graph.placeholder(new_name)
-                        new_node.name = new_name
+                        new_node = graph.placeholder(node.name)
+                        # Name to set after cleaning
+                        new_node.rename = new_name
                         node.replace_all_uses_with(new_node)
                     graph.erase_node(node)
         self.update()
 
-        # Remove dead inputs nodes
+        # Rename new input nodes and remove unused placeholders
         for node in graph.nodes:
-            if node.op == "placeholder" and not node.users:
-                graph.erase_node(node)
+            if node.op == "placeholder":
+                if not node.users:
+                    graph.erase_node(node)
+                if getattr(node, "rename", None):
+                    node.name = node.rename
+                    node.target = node.rename
+                    node.rename = None
         self.update()
 
     def update_graph_outputs(
