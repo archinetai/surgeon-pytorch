@@ -58,12 +58,16 @@ def get_layers_modules(
 
 class Inspect(nn.Module):
     def __init__(
-        self, model: nn.Module, layer: Union[str, Sequence[str], Dict[str, str]]
+        self,
+        model: nn.Module,
+        layer: Union[str, Sequence[str], Dict[str, str]],
+        keep_output: bool = True,
     ):
         super().__init__()
         self.model = model
         self.layers = get_layers_modules(model, layer)
         self.layer = layer
+        self.keep_output = keep_output
 
     def register_hooks(self):
         for layer in self.layers:
@@ -94,11 +98,11 @@ class Inspect(nn.Module):
         if isinstance(self.layer, list) or is_tuple:
             layers_output = [layer.output for layer in self.layers]
             layers_output = tuple(layers_output) if is_tuple else layers_output
-            return model_output, layers_output
+            return (model_output, layers_output) if self.keep_output else layers_output
         elif isinstance(self.layer, dict):
             layers_output = {layer.key: layer.output for layer in self.layers}
-            return model_output, layers_output
+            return (model_output, layers_output) if self.keep_output else layers_output
 
         layer_output = self.layers[0].output
 
-        return model_output, layer_output
+        return (model_output, layer_output) if self.keep_output else layer_output
