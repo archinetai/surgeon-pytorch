@@ -1,9 +1,9 @@
 <img src="./LOGO.png"></img>
 
-A library to inspect itermediate layers of PyTorch models. 
+A library to inspect and extract intermediate layers of PyTorch models.
 
 ### Why?
-It's often the case that we want to inspect intermediate layers of a model without modifying the code e.g. visualize attention matrices of language models, get values from an intermediate layer to feed to another layer, or applying a loss function to intermediate layers. 
+It's often the case that we want to inspect intermediate layers of a model or completely extract them without modifying the code. This can be useful to visualize attention matrices of language models, get values from an intermediate layer to feed to another layer, or apply a loss function to intermediate layers.
 
 ## Install
 
@@ -12,6 +12,12 @@ $ pip install surgeon-pytorch
 ```
 
 [![PyPI - Python Version](https://img.shields.io/pypi/v/surgeon-pytorch?style=flat&colorA=0f0f0f&colorB=0f0f0f)](https://pypi.org/project/surgeon-pytorch/)
+
+
+### Inspect vs Extract
+The `Inspect` class always executes the entire model provided as input, and it uses special hooks to record the tensor values as they flow through. This approach has the advantages that (1) we don't create a new module (2) it allows for a dynamic execution graph (i.e. `for` loops and `if` statements that depend on inputs). The downsides of `Inspect` are that (1) if we only need to execute part of the model some computation is wasted, and (2) we can only output values from `nn.Module` layers – no intermediate function values.
+
+The `Extract` class builds an entirely new model using symbolic tracing. The advantages of this approach are (1) we can crop the graph anywhere and get a new model that computes only that part, (2) we can extract values from intermediate functions (not only layers), and (3) we can also change input tensors. The downside of `Extract` is that only static graphs are allowed (note that most models have static graphs).
 
 ## Usage
 
@@ -65,7 +71,7 @@ print(x2) # tensor([[-0.2238,  0.0107]], grad_fn=<AddmmBackward0>)
 
 Or a dictionary to get named outputs:
 ```python
-model_wrapped = Inspect(model, layer={'x1': 'layer1', 'x2': 'layer2'})
+model_wrapped = Inspect(model, layer={'layer1': 'x1', 'layer2': 'x2'})
 x = torch.rand(1, 5)
 y, layers = model_wrapped(x)
 print(layers)
@@ -77,6 +83,101 @@ print(layers)
 """
 ```
 
+### Extract
+
+Given a PyTorch model we can display all intermediate nodes of the graph using `get_nodes`:
+
+```python
+import torch
+import torch.nn as nn
+from surgeon_pytorch import Extract, get_nodes
+
+class SomeModel(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Linear(5, 3)
+        self.layer2 = nn.Linear(3, 2)
+        self.layer3 = nn.Linear(1, 1)
+
+    def forward(self, x):
+        x1 = torch.relu(self.layer1(x))
+        x2 = torch.sigmoid(self.layer2(x1))
+        y = self.layer3(x2).tanh()
+        return y
+
+model = SomeModel()
+print(get_nodes(model)) # ['x', 'layer1', 'relu', 'layer2', 'sigmoid', 'layer3', 'tanh']
+```
+
+Then we can extract outputs using `Extract`, which will create a new model that returns the requested output node:
+
+```python
+model_extracted = Extract(model, node_out='sigmoid')
+x = torch.rand(1, 5)
+sigmoid = model_extracted(x)
+print(sigmoid) # tensor([[0.5570, 0.3652]], grad_fn=<SigmoidBackward0>)
+```
+
+We can also extract a model with new input nodes:
+
+```python
+model_extracted = Extract(model, node_in='layer1', node_out='sigmoid')
+x = torch.rand(1, 3)
+sigmoid = model_extracted(x)
+print(sigmoid) # tensor([[0.5444, 0.3965]], grad_fn=<SigmoidBackward0>)
+```
+
+We can also provide multiple inputs and outputs and name them:
+
+```python
+model_extracted = Extract(model, node_in={ 'layer1': 'x' }, node_out={ 'sigmoid': 'y1', 'relu': 'y2'})
+out = model_extracted(x = torch.rand(1, 3))
+print(out)
+"""
+{
+    'y1': tensor([[0.4437, 0.7152]], grad_fn=<SigmoidBackward0>),
+    'y2': tensor([[0.0555, 0.9014, 0.8297]]),
+}
+"""
+```
+
+Note that in some cases changing an input node is not enough to cut the graph, since there might be other dependencies, to check all inputs of the graph we can get call `model_ext.summary` which will give us an overview of all inputs and outputs:
+
+```python
+import torch
+import torch.nn as nn
+from surgeon_pytorch import Extract, get_nodes
+
+class SomeModel(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.layer1a = nn.Linear(2, 2)
+        self.layer1b = nn.Linear(2, 2)
+        self.layer2 = nn.Linear(2, 1)
+
+    def forward(self, x):
+        a = self.layer1a(x)
+        b = self.layer1b(x)
+        c = torch.add(a, b)
+        y = self.layer2(c)
+        return y
+
+model = SomeModel()
+print(get_nodes(model)) # ['x', 'layer1a', 'layer1b', 'add', 'layer2']
+
+model_ext = Extract(model, node_in = {'layer1a': 'my_input'}, node_out = {'add': 'my_add'})
+print(model_ext.summary) # {'input': ('x', 'my_input'), 'output': {'my_add': add}}
+
+out = model_ext(x = torch.rand(1, 2), my_add = torch.rand(1,2))
+print(out) # {'my_add': tensor([[ 0.3722, -0.6843]], grad_fn=<AddBackward0>)}
+```
+
+
+
+
 
 ## TODO
-- [ ] add extract function to get intermediate block 
+- [x] add extract function to get intermediate block
+- [x] add model inputs/outputs summary
