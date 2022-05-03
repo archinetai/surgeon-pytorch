@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name="surgeon-pytorch",
     packages=find_packages(exclude=[]),
-    version="0.0.2",
+    version="0.0.4",
     license="MIT",
     description="Surgeon - PyTorch",
     author="Flavio Schneider",
