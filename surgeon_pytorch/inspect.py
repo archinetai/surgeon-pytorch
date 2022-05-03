@@ -1,9 +1,19 @@
+from functools import reduce
 from typing import Dict, List, Sequence, Union
 
 import torch.nn as nn
 from torch import Tensor
 
-from .utils import exists, get_module
+from .utils import exists
+
+
+def get_layers_alias(model):
+    return [n for n, _ in model.named_modules()][1:]
+
+
+def get_module(module, alias):
+    names = alias.split(sep=".")
+    return reduce(getattr, names, module)
 
 
 class Layer:
@@ -24,7 +34,7 @@ class Layer:
         )
 
 
-def get_layers(
+def get_layers_modules(
     model: nn.Module, aliases: Union[str, Sequence[str], Dict[str, str]]
 ) -> List[Layer]:
     layers = []
@@ -37,8 +47,8 @@ def get_layers(
         ]
     elif isinstance(aliases, dict):
         layers = [
-            Layer(module=get_module(model, alias), key=key, alias=alias)
-            for key, alias in aliases.items()
+            Layer(module=get_module(model, alias), key=name, alias=alias)
+            for alias, name in aliases.items()
         ]
     else:
         raise TypeError("layer must be str, list, tuple, or dict")
@@ -52,10 +62,8 @@ class Inspect(nn.Module):
     ):
         super().__init__()
         self.model = model
-        self.layers = get_layers(model, layer)
-        self.is_list = isinstance(layer, list)
-        self.is_tuple = isinstance(layer, tuple)
-        self.is_dict = isinstance(layer, dict)
+        self.layers = get_layers_modules(model, layer)
+        self.layer = layer
 
     def register_hooks(self):
         for layer in self.layers:
@@ -82,11 +90,12 @@ class Inspect(nn.Module):
             self.clear_hooks()
 
         # Retrieve outputs and return
-        if self.is_list or self.is_tuple:
+        is_tuple = isinstance(self.layer, tuple)
+        if isinstance(self.layer, list) or is_tuple:
             layers_output = [layer.output for layer in self.layers]
-            layers_output = tuple(layers_output) if self.is_tuple else layers_output
+            layers_output = tuple(layers_output) if is_tuple else layers_output
             return model_output, layers_output
-        elif self.is_dict:
+        elif isinstance(self.layer, dict):
             layers_output = {layer.key: layer.output for layer in self.layers}
             return model_output, layers_output
 
