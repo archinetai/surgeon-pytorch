@@ -153,7 +153,7 @@ print(out)
 """
 ```
 
-Note that in some cases changing an input node is not enough to cut the graph, since there might be other dependencies, to check all inputs of the graph we can get call `model_ext.summary` which will give us an overview of all inputs and outputs:
+Note that changing an input node might not be enough to cut the graph as there might be other dependencies connected to previous inputs. To check all inputs of the graph we can get call `model_ext.summary` which will give us an overview of all required inputs and returned outputs:
 
 ```python
 import torch
