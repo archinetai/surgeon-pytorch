@@ -13,12 +13,6 @@ $ pip install surgeon-pytorch
 
 [![PyPI - Python Version](https://img.shields.io/pypi/v/surgeon-pytorch?style=flat&colorA=0f0f0f&colorB=0f0f0f)](https://pypi.org/project/surgeon-pytorch/)
 
-
-### Inspect vs Extract
-The `Inspect` class always executes the entire model provided as input, and it uses special hooks to record the tensor values as they flow through. This approach has the advantages that (1) we don't create a new module (2) it allows for a dynamic execution graph (i.e. `for` loops and `if` statements that depend on inputs). The downsides of `Inspect` are that (1) if we only need to execute part of the model some computation is wasted, and (2) we can only output values from `nn.Module` layers – no intermediate function values.
-
-The `Extract` class builds an entirely new model using symbolic tracing. The advantages of this approach are (1) we can crop the graph anywhere and get a new model that computes only that part, (2) we can extract values from intermediate functions (not only layers), and (3) we can also change input tensors. The downside of `Extract` is that only static graphs are allowed (note that most models have static graphs).
-
 ## Usage
 
 ### Inspect
@@ -59,7 +53,11 @@ y, x2 = model_wrapped(x)
 print(x2) # tensor([[-0.2726,  0.0910]], grad_fn=<AddmmBackward0>)
 ```
 
-We can also provide a list of layers:
+<details>
+<summary> <b> List Multiple Layers </b> </summary>
+<br>
+
+We can provide a list of layers:
 
 ```python
 model_wrapped = Inspect(model, layer=['layer1', 'layer2'])
@@ -68,8 +66,13 @@ y, [x1, x2] = model_wrapped(x)
 print(x1) # tensor([[ 0.1739,  0.3844, -0.4724]], grad_fn=<AddmmBackward0>)
 print(x2) # tensor([[-0.2238,  0.0107]], grad_fn=<AddmmBackward0>)
 ```
+</details>
+     
+<details>
+<summary> <b> Named Layer Outputs </b> </summary>
+<br>
 
-Or a dictionary to get named outputs:
+We can provide a dictionary to get named outputs:
 ```python
 model_wrapped = Inspect(model, layer={'layer1': 'x1', 'layer2': 'x2'})
 x = torch.rand(1, 5)
@@ -82,9 +85,12 @@ print(layers)
 }
 """
 ```
+</details>
 
-#### API
-
+<details>
+<summary> <b> API </b> </summary>
+<br>
+    
 ```python
 model = Extract(
     model: nn.Module,
@@ -92,6 +98,8 @@ model = Extract(
     keep_output: bool = True,
 )
 ```
+    
+</details>
 
 
 ### Extract
@@ -139,6 +147,10 @@ sigmoid = model_ext(x)
 print(sigmoid) # tensor([[0.5444, 0.3965]], grad_fn=<SigmoidBackward0>)
 ```
 
+<details>
+<summary> <b> Multiple Nodes </b> </summary>
+<br>    
+    
 We can also provide multiple inputs and outputs and name them:
 
 ```python
@@ -152,7 +164,14 @@ print(out)
 }
 """
 ```
+    
+</details>
 
+    
+<details>
+<summary> <b> Get Input/Output Summary </b> </summary>
+<br> 
+    
 Note that changing an input node might not be enough to cut the graph as there might be other dependencies connected to previous inputs. To check all inputs of the graph we can get call `model_ext.summary` which will give us an overview of all required inputs and returned outputs:
 
 ```python
@@ -185,6 +204,12 @@ out = model_ext(x = torch.rand(1, 2), my_input = torch.rand(1,2))
 print(out) # {'my_add': tensor([[ 0.3722, -0.6843]], grad_fn=<AddBackward0>)}
 ```
 
+</details>
+    
+<details>
+<summary> <b> API </b> </summary>
+<br> 
+
 #### API
 
 ```python
@@ -198,6 +223,14 @@ model = Extract(
     share_modules: bool = False,                    # Set to true if you want to share module weights with original model
 )
 ```
+
+</details>
+
+
+### Inspect vs Extract
+The `Inspect` class always executes the entire model provided as input, and it uses special hooks to record the tensor values as they flow through. This approach has the advantages that (1) we don't create a new module (2) it allows for a dynamic execution graph (i.e. `for` loops and `if` statements that depend on inputs). The downsides of `Inspect` are that (1) if we only need to execute part of the model some computation is wasted, and (2) we can only output values from `nn.Module` layers – no intermediate function values.
+
+The `Extract` class builds an entirely new model using symbolic tracing. The advantages of this approach are (1) we can crop the graph anywhere and get a new model that computes only that part, (2) we can extract values from intermediate functions (not only layers), and (3) we can also change input tensors. The downside of `Extract` is that only static graphs are allowed (note that most models have static graphs).
 
 
 
