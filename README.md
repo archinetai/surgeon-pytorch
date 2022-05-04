@@ -142,8 +142,8 @@ We can also extract a model with new input nodes:
 
 ```python
 model_ext = Extract(model, node_in='layer1', node_out='sigmoid')
-x = torch.rand(1, 3)
-sigmoid = model_ext(x)
+layer1 = torch.rand(1, 3)
+sigmoid = model_ext(layer1)
 print(sigmoid) # tensor([[0.5444, 0.3965]], grad_fn=<SigmoidBackward0>)
 ```
 
