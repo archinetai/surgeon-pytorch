@@ -92,7 +92,7 @@ print(layers)
 <br>
     
 ```python
-model = Extract(
+model = Inspect(
     model: nn.Module,
     layer: Union[str, Sequence[str], Dict[str, str]],
     keep_output: bool = True,
