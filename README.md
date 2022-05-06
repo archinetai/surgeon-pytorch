@@ -3,7 +3,7 @@
 A library to inspect and extract intermediate layers of PyTorch models.
 
 ### Why?
-It's often the case that we want to inspect intermediate layers of a model or completely extract them without modifying the code. This can be useful to visualize attention matrices of language models, get values from an intermediate layer to feed to another layer, or apply a loss function to intermediate layers.
+It's often the case that we want to _inspect_ intermediate layers of PyTorch models without modifying the code. This can be useful get attention matrices of language models, visualize layer embeddings, or apply a loss function to intermediate layers. Sometimes we want _extract_ subparts of the model and run them independently, either to debug them or to train them separately. All of this can be done with Surgeon without changing one line of the original model.
 
 ## Install
 
@@ -54,7 +54,7 @@ print(x2) # tensor([[-0.2726,  0.0910]], grad_fn=<AddmmBackward0>)
 ```
 
 <details>
-<summary> <b> List Multiple Layers </b> </summary>
+<summary> <b> Inspect Multiple Layers </b> </summary>
 <br>
 
 We can provide a list of layers:
@@ -69,7 +69,7 @@ print(x2) # tensor([[-0.2238,  0.0107]], grad_fn=<AddmmBackward0>)
 </details>
      
 <details>
-<summary> <b> Named Layer Outputs </b> </summary>
+<summary> <b> Name Inspected Layer Outputs </b> </summary>
 <br>
 
 We can provide a dictionary to get named outputs:
@@ -169,10 +169,10 @@ print(out)
 
     
 <details>
-<summary> <b> Get Input/Output Summary </b> </summary>
+<summary> <b> Graph Input/Output Summary </b> </summary>
 <br> 
     
-Note that changing an input node might not be enough to cut the graph as there might be other dependencies connected to previous inputs. To check all inputs of the graph we can get call `model_ext.summary` which will give us an overview of all required inputs and returned outputs:
+Note that changing an input node might not be enough to cut the graph (there might be other dependencies connected to previous inputs). To view all inputs of the new graph we can call `model_ext.summary` which will give us an overview of all required inputs and returned outputs:
 
 ```python
 import torch
