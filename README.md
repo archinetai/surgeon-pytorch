@@ -3,7 +3,7 @@
 A library to inspect and extract intermediate layers of PyTorch models.
 
 ### Why?
-It's often the case that we want to _inspect_ intermediate layers of PyTorch models without modifying the code. This can be useful get attention matrices of language models, visualize layer embeddings, or apply a loss function to intermediate layers. Sometimes we want _extract_ subparts of the model and run them independently, either to debug them or to train them separately. All of this can be done with Surgeon without changing one line of the original model.
+It's often the case that we want to _inspect_ intermediate layers of PyTorch models without modifying the code. This can be useful to get attention matrices of language models, visualize layer embeddings, or apply a loss function to intermediate layers. Sometimes we want _extract_ subparts of the model and run them independently, either to debug them or to train them separately. All of this can be done with Surgeon without changing one line of the original model.
 
 ## Install
 
